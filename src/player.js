@@ -31,6 +31,7 @@ export default function (ctx, delta, player, other = false) {
   if (player.vx === 1) animation = 'right'
   if (player.vy === -1) animation = 'up'
   if (player.vy === 1) animation = 'down'
+
   ctx.drawImage(character,
     64 * animations[animation][animationSpeed % animations[animation].length].x,
     64 * animations[animation][animationSpeed % animations[animation].length].y,

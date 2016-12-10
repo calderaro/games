@@ -1,130 +1,97 @@
 import document from 'global/document'
 import window from 'global/window'
 import sio from 'socket.io-client'
-import keyboard from 'keyboardjs'
 import Player from './player'
-import map from './map'
+import handleKeys from './keys'
+import drawWorld from './world'
+import throttle from 'lodash/throttle'
 
-const dead = new Image()
 const floors = new Image()
-dead.src = 'static/img/sprites/11.gif'
 floors.src = 'static/img/sprites/73145.png'
 
-let state = { vx: 0, vy: 0, players: {} }
-let keys = []
-const name = Math.random()
+let state = { name: Math.random(), movement: { vx: 0, vy: 0 }, players: {}, keys: [], items: {}, mouse: { x: 0, y: 0 } }
 const io = sio()
 const canvas = document.createElement('canvas')
 const ctx = canvas.getContext('2d')
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 document.body.appendChild(canvas)
-document.body.style = 'padding:0;margin:0;width:100vw;height:100vh'
+document.body.style = 'padding:0;margin:0;width:100vw;height:100vh;cursor:pointer'
 
-io.on('connect', () => io.emit('authenticate', name))
+io.on('connect', () => io.emit('authenticate', state.name))
 io.on('message', (data) => console.log(data))
 io.on('players', (data) => state.players = data)
+io.on('items', (data) => state.items = data)
 
-keyboard.bind(
-  ['w', 's', 'a', 'd'],
-  (e) => {
-    e.preventRepeat()
-    keys.push(e.key)
-
-    const windex = keys.indexOf('w')
-    const sindex = keys.indexOf('s')
-    const aindex = keys.indexOf('a')
-    const dindex = keys.indexOf('d')
-
-    if (windex > -1 || sindex > -1) state.vy = windex > sindex ? -1 : 1
-    if (aindex > -1 || dindex > -1) state.vx = aindex > dindex ? -1 : 1
-
-    io.emit('message', state)
-  },
-  (e) => {
-    state.vy = 0
-    state.vx = 0
-    keys = keys.filter(k => k !== e.key)
-
-    const windex = keys.indexOf('w')
-    const sindex = keys.indexOf('s')
-    const aindex = keys.indexOf('a')
-    const dindex = keys.indexOf('d')
-
-    if (windex > -1 || sindex > -1) state.vy = windex > sindex ? -1 : 1
-    if (aindex > -1 || dindex > -1) state.vx = aindex > dindex ? -1 : 1
-
-    io.emit('message', state)
-  }
-)
+handleKeys(io, state)
 
 function draw (time) {
-  const players = Object.values(state.players)
-  const player = players.filter(p => p.name === name)[0] || {}
+  const { x: mouseX, y: mouseY } = state.mouse
+  const data = Object.values({...state.players, ...state.items})
+  const player = data.filter(p => p.name === state.name)[0] || {}
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  for (let y = 0; y <= 63; y++) {
-    for (let x = 0; x <= 63; x++) {
-      const dx = (map.x - player.x) + ctx.canvas.width / 2 + (x * 31)
-      const dy = (map.y - player.y) + ctx.canvas.height / 2 + (y * 31)
-      switch (map.tiles[x + 64 * y]) {
-        case 0:
-          ctx.drawImage(floors,
-            32 * 5,
-            32 * 11,
-            32, 32,
-            dx,
-            dy,
-            32, 32
-          )
-          break
-        case 1:
-          ctx.drawImage(floors,
-            32 * 6,
-            32 * 11,
-            32, 32,
-            dx,
-            dy,
-            32, 32
-          )
-          break
-        case 2:
-          ctx.drawImage(floors,
-            32 * 7,
-            32 * 11,
-            32, 32,
-            dx,
-            dy,
-            32, 32
-          )
-          break
-        default:
-          ctx.drawImage(floors,
-            32 * 6,
-            32 * 11,
-            32, 32,
-            dx,
-            dy,
-            32, 32
-          )
-      }
-    }
-  }
+  drawWorld(ctx, state)
 
-  ctx.fillStyle = 'red'
-  players.filter(p => p.name !== name).forEach(p => {
+  data.filter(p => p.name !== state.name).forEach(p => {
+    const offSetX = p.x - player.x + ctx.canvas.width / 2
+    const offSetY = p.y - player.y + ctx.canvas.height / 2
+
     if (p.status === 'dead') {
-      ctx.drawImage(dead, 0, 0, 32, 32, p.x - player.x + ctx.canvas.width / 2, p.y - player.y + ctx.canvas.height / 2, 32, 32)
+      ctx.drawImage(floors, 32 * 9, 0, 32, 31, offSetX, offSetY, 32, 32)
+    } else if (p.type === 'item') {
+      ctx.drawImage(
+        floors,
+        32 * p.ix,
+        32 * p.iy,
+        32, 31,
+        p.x - player.x + ctx.canvas.width / 2,
+        p.y - player.y + ctx.canvas.height / 2,
+        32, 32)
     } else {
-      const other = {...p, x: p.x - player.x, y: p.y - player.y}
-      Player(ctx, time, other, true)
+      Player(ctx, time, {...p, x: offSetX, y: offSetY}, true)
     }
   })
+
   Player(ctx, time, player)
-  ctx.fillText('x: ' + parseInt(player.x, 10) + ' y: ' + parseInt(player.y, 10) + ' p: ' + players.length, 2, 10)
+  ctx.fillText('x: ' + parseInt(player.x, 10) + ' y: ' + parseInt(player.y, 10) + ' p: ' + data.length, 2, 10)
   window.requestAnimationFrame(draw)
 }
 window.requestAnimationFrame(draw)
+
+function setMousePos (evt) {
+  const rect = canvas.getBoundingClientRect() // abs. size of element
+  const scaleX = canvas.width / rect.width    // relationship bitmap vs. element for X
+  const scaleY = canvas.height / rect.height  // relationship bitmap vs. element for Y
+
+  state.mouse = {
+    x: (evt.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
+    y: (evt.clientY - rect.top) * scaleY     // been adjusted to be relative to element
+  }
+}
+
+canvas.addEventListener('mousemove', throttle(setMousePos, 30), false)
+canvas.addEventListener('click', () => {
+  const { x: mouseX, y: mouseY } = state.mouse
+  Object.values({...state.players, ...state.items}).forEach(p => {
+    const offSetX = p.x - state.players[state.name].x + ctx.canvas.width / 2
+    const offSetY = p.y - state.players[state.name].y + ctx.canvas.height / 2
+    if (p.type === 'item' &&
+        mouseX > (p.x - state.players[state.name].x) + ctx.canvas.width / 2 &&
+        mouseX < (p.x - state.players[state.name].x) + ctx.canvas.width / 2 + 32 &&
+        mouseY > (p.y - state.players[state.name].y) + ctx.canvas.height / 2 &&
+        mouseY < (p.y - state.players[state.name].y) + ctx.canvas.height / 2 + 32
+      ) {
+      if (p.type === 'item') return console.log('you see item ' + p.name)
+    }
+    if (mouseX > offSetX && mouseX < offSetX + 32 && mouseY > offSetY && mouseY < offSetY + 32) {
+      if (p.name === state.name) return console.log('you see your self ' + p.name)
+      if (p.type === 'player' && p.status === 'dead') console.log('you see a dead player ')
+      if (p.type === 'player' && p.status !== 'dead') console.log('you see other player ')
+    }
+  })
+
+}, false)
 
 if (module.hot) {
   module.hot.accept()

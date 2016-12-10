@@ -23,10 +23,15 @@ app
   .get('*', (req, res) => res.sendFile(path.join(__dirname, './index.html')))
 
 let players = {}
+let items = {
+  [Math.random()]: { type: 'item', ix: 13, iy: 0, x: 200, y: 100 },
+  [Math.random()]: { type: 'item', ix: 2, iy: 2, x: -100, y: -100 },
+  [Math.random()]: { type: 'item', ix: 2, iy: 2, x: 64, y: 64 }
+}
 
 io.sockets.on('connection', (socket) => {
   socket.send('connected')
-  socket.on('disconnect', (data) => players[socket.name].status = 'dead')
+  socket.on('disconnect', (data) => Object.keys(players).length ? players[socket.name].status = 'dead' : console.log(' no players '))
   socket.on('message', (data) => {
     const { vx, vy } = data
     if (vy === -1 || vy === 0 || vy === 1) {
@@ -39,12 +44,11 @@ io.sockets.on('connection', (socket) => {
   socket.on('authenticate', function (name) {
     if (!name) return console.log('have no token!!')
     socket.name = name
-    players[name] = { name, x: 0, y: 0, vy: 0, vx: 0 }
+    players[name] = { type: 'player', name, x: 0, y: 0, vy: 0, vx: 0 }
   })
 })
 
 const id = gameloop.setGameLoop(function (delta) {
-
   values(players).forEach((s) => {
     players[s.name] = {
       ...players[s.name],
@@ -54,6 +58,7 @@ const id = gameloop.setGameLoop(function (delta) {
   })
 
   io.emit('players', players)
+  io.emit('items', items)
 }, 1000 / 30)
 
 server.listen(3000, err => console.log(err || 'Listening at port 3000 in development'))
