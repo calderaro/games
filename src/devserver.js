@@ -31,7 +31,7 @@ let items = {
 
 io.sockets.on('connection', (socket) => {
   socket.send('connected')
-  socket.on('disconnect', (data) => Object.keys(players).length ? players[socket.name].status = 'dead' : console.log(' no players '))
+  socket.on('disconnect', (data) => players[socket.name] ? players[socket.name].status = 'dead' : console.log(' no players '))
   socket.on('message', (data) => {
     const { vx, vy } = data
     if (vy === -1 || vy === 0 || vy === 1) {
