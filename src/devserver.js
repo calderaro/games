@@ -27,12 +27,24 @@ let items = {
   [Math.random()]: { type: 'item', ix: 13, iy: 0, x: 200, y: 100 },
   [Math.random()]: { type: 'item', ix: 2, iy: 2, x: -100, y: -100 },
   [Math.random()]: { type: 'item', ix: 2, iy: 2, x: 64, y: 64 },
-  [Math.random()]: { type: 'item', ix: 21, iy: 11, x: 30, y: 30, message: 'marico el que lo lea', set: '74873' }
+  [Math.random()]: { type: 'item', ix: 21, iy: 11, x: 30, y: 30, message: 'lees un mensaje: marico el que lo lea', set: '74873' }
 }
 
 io.sockets.on('connection', (socket) => {
   socket.send('connected')
-  socket.on('disconnect', (data) => players[socket.name] ? players[socket.name].status = 'dead' : console.log(' no players '))
+  socket.on('disconnect', (data) => {
+    if (players[socket.name]) {
+      items[Math.random()] = {
+        type: 'item',
+        ix: 9,
+        iy: 0,
+        x: players[socket.name].x,
+        y: players[socket.name].y,
+        message: 'ves un cadaver'
+      }
+      delete players[socket.name]
+    }
+  })
   socket.on('message', (data) => {
     const { vx, vy } = data
     if (vy === -1 || vy === 0 || vy === 1) {

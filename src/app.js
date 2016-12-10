@@ -43,9 +43,7 @@ function draw (time) {
     const offSetX = p.x - player.x + ctx.canvas.width / 2
     const offSetY = p.y - player.y + ctx.canvas.height / 2
 
-    if (p.status === 'dead') {
-      ctx.drawImage(sets['73145'], 32 * 9, 0, 32, 31, offSetX, offSetY, 32, 32)
-    } else if (p.type === 'item') {
+    if (p.type === 'item') {
       ctx.drawImage(
         sets[p.set || '73145'],
         32 * p.ix,
@@ -88,7 +86,7 @@ canvas.addEventListener('click', () => {
         mouseY > (p.y - state.players[state.name].y) + ctx.canvas.height / 2 &&
         mouseY < (p.y - state.players[state.name].y) + ctx.canvas.height / 2 + 32
       ) {
-      if (p.type === 'item') return console.log('you see item ' + (p.name || '') + ' ' + (p.message || ''))
+      if (p.type === 'item') return console.log(p.message || '')
     }
     if (mouseX > offSetX && mouseX < offSetX + 32 && mouseY > offSetY && mouseY < offSetY + 32) {
       if (p.name === state.name) return console.log('you see your self ' + p.name)
