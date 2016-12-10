@@ -26,7 +26,8 @@ let players = {}
 let items = {
   [Math.random()]: { type: 'item', ix: 13, iy: 0, x: 200, y: 100 },
   [Math.random()]: { type: 'item', ix: 2, iy: 2, x: -100, y: -100 },
-  [Math.random()]: { type: 'item', ix: 2, iy: 2, x: 64, y: 64 }
+  [Math.random()]: { type: 'item', ix: 2, iy: 2, x: 64, y: 64 },
+  [Math.random()]: { type: 'item', ix: 21, iy: 11, x: 30, y: 30, message: 'marico el que lo lea', set: '74873' }
 }
 
 io.sockets.on('connection', (socket) => {

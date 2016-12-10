@@ -6,8 +6,14 @@ import handleKeys from './keys'
 import drawWorld from './world'
 import throttle from 'lodash/throttle'
 
-const floors = new Image()
-floors.src = 'static/img/sprites/73145.png'
+const s73145 = new Image()
+s73145.src = 'static/img/sprites/73145.png'
+const s74873 = new Image()
+s74873.src = 'static/img/sprites/74873.png'
+const sets = {
+  '73145': s73145,
+  '74873': s74873
+}
 
 let state = { name: Math.random(), movement: { vx: 0, vy: 0 }, players: {}, keys: [], items: {}, mouse: { x: 0, y: 0 } }
 const io = sio()
@@ -38,10 +44,10 @@ function draw (time) {
     const offSetY = p.y - player.y + ctx.canvas.height / 2
 
     if (p.status === 'dead') {
-      ctx.drawImage(floors, 32 * 9, 0, 32, 31, offSetX, offSetY, 32, 32)
+      ctx.drawImage(sets['73145'], 32 * 9, 0, 32, 31, offSetX, offSetY, 32, 32)
     } else if (p.type === 'item') {
       ctx.drawImage(
-        floors,
+        sets[p.set || '73145'],
         32 * p.ix,
         32 * p.iy,
         32, 31,
@@ -82,7 +88,7 @@ canvas.addEventListener('click', () => {
         mouseY > (p.y - state.players[state.name].y) + ctx.canvas.height / 2 &&
         mouseY < (p.y - state.players[state.name].y) + ctx.canvas.height / 2 + 32
       ) {
-      if (p.type === 'item') return console.log('you see item ' + p.name)
+      if (p.type === 'item') return console.log('you see item ' + (p.name || '') + ' ' + (p.message || ''))
     }
     if (mouseX > offSetX && mouseX < offSetX + 32 && mouseY > offSetY && mouseY < offSetY + 32) {
       if (p.name === state.name) return console.log('you see your self ' + p.name)
@@ -92,6 +98,11 @@ canvas.addEventListener('click', () => {
   })
 
 }, false)
+
+window.onresize = function (event) {
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+}
 
 if (module.hot) {
   module.hot.accept()
