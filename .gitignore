@@ -1,18 +1,23 @@
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log*
+yarn.lock
+package-lock.json
+
+# Misc
+sandbox
 node_modules
-npm-debug.log
+coverage
+*.xml
 
-# hide builded files on repo
-dists
-build
-./build
-build/public/*
-static/vendors.js
-static/app.js
-!build/.gitkeep
-!build/public/favicon.ico
+# Dist
+*.gz
+dist/
 
-src/app_/*
-App_
 
-.idea
-.DS_Store
+# hide build files
+build/
